@@ -15,17 +15,11 @@ extension OrientationExtensions on String {
 extension OrientationExtensions2 on Orientation {
 
   Orientation getNewOrientation(String turn) {
-    //println()
-    //println("Current Degrees: $degrees, rotate: $directionDelta")
     int degreeDelta = (turn == 'L') ? -90 : 90;
-    //println("Degree Delta: $degreeDelta")
-    var finalDegrees = (this.rotation + degreeDelta) % 360;
-    //println("Final Degrees: $finalDegrees")
+    var finalDegrees = (rotation + degreeDelta) % 360;
     if (finalDegrees < 0) {
       finalDegrees += 360;
-      //println("Final Degrees corrected: $finalDegrees")
     }
-    //println()
     Orientation? retOrientation = Constants.allOrientations.firstWhereOrNull((o) => o.rotation == finalDegrees);
     if (retOrientation == null) {
       throw Exception("Invalid orientation");
