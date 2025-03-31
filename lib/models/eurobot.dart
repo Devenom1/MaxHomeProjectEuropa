@@ -10,7 +10,7 @@ class EuRobot {
   Orientation initOrientation;
   String path;
   List<EuRobotLog> movementLogs = [];
-  GridPosition? pos;
+  GridPosition pos = GridPosition(0, 0);
   Orientation? orientation;
   int pathLengthCompleted = 0;
   bool movementLocked = false;

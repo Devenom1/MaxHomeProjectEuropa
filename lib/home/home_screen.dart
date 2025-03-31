@@ -1,16 +1,20 @@
 // Create a stateful widget
+import 'dart:core';
 import 'dart:math';
 import 'dart:ui';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:maxhome_europa/constants.dart';
+import 'package:maxhome_europa/extensions/eurobot_extensions.dart';
+import 'package:maxhome_europa/extensions/grid_position_extensions.dart';
 import 'package:maxhome_europa/extensions/orientation_extensions.dart';
+import 'package:maxhome_europa/home/robot_details_view.dart';
 import 'package:maxhome_europa/models/eurobot.dart';
 import 'package:maxhome_europa/models/grid_position.dart';
 import 'package:maxhome_europa/models/orientation.dart' as euro_ori;
 
-import 'models/Collision.dart';
+import '../models/Collision.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,10 +27,12 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _gridSizeTextController = TextEditingController();
   int _maxGridX = -1;
   int _maxGridY = -1;
+  bool _gridTextEnabled = true;
 
   final TextEditingController _robot1TextController = TextEditingController();
   int robot1X = -1;
   int robot1Y = -1;
+  final FocusNode _robotCoordsFocusNode = FocusNode();
 
   final TextEditingController _robotPathTextController =
       TextEditingController();
@@ -66,26 +72,56 @@ class _HomeScreenState extends State<HomeScreen> {
               Text("Hey there! You've reached Europa."),
               SizedBox(height: 10),
               // message
-              Text(
-                "There's an iced up ocean here. Could you determine the area for me? "
-                "Input the top right co-ordinates of the grid separated by spaces. e.g. (4, 7)",
+              Container(
+                padding: const EdgeInsets.all(24),
+                margin: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.blueGrey.withAlpha(40),
+                  borderRadius: BorderRadius.circular(10)
+                ),
+                child: Text(
+                  "There's an iced up ocean here. Could you determine the area for me? "
+                  "Input the top right co-ordinates of the grid separated by spaces. e.g. (4, 7)",
+                ),
               ),
-              SizedBox(height: 10),
-              Row(
+              Column(
                 children: [
-                  Expanded(
-                    child: TextField(
-                        controller: _gridSizeTextController,
-                      onSubmitted: (value) => _visualizeGrid,
-                      onEditingComplete: _visualizeGrid,
-                      textInputAction: TextInputAction.done,
-                    ),
+                  Text("Enter the top right grid co-ordinates below"),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 120,
+                        child: TextField(
+                          controller: _gridSizeTextController,
+                          decoration: const InputDecoration(
+                              hintText: "e.g. \"5 5\""
+                          ),
+                          enabled: _gridTextEnabled,
+                          onSubmitted: (value) => _visualizeGrid,
+                          onEditingComplete: _visualizeGrid,
+                          textInputAction: TextInputAction.done,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      if (_maxGridX != -1 && _maxGridY != -1)
+                        IconButton(
+                            onPressed: _removeGridValues,
+                            icon: Icon(Icons.close)
+                        )
+                    ],
                   ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _visualizeGrid,
-                      child: Text("Visualise ocean grid"),
+
+                  SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _visualizeGrid,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.remove_red_eye),
+                        SizedBox(width: 10),
+                        Text("Visualise ocean grid")
+                      ],
                     ),
                   ),
                 ],
@@ -94,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
               generateGrid(_maxGridX, _maxGridY),
               addRobotWidget(),
               SizedBox(height: 8),
-              robotDisplayList(),
+              robotDisplayList2(),
               SizedBox(height: 8),
               if (robots.isNotEmpty)
                 ElevatedButton(
@@ -114,6 +150,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _removeGridValues() {
+    setState(() {
+      _maxGridX = -1;
+      _maxGridY = -1;
+      _gridSizeTextController.clear();
+      _gridTextEnabled = true;
+    });
+  }
+
   void _visualizeGrid() {
     String gridSizeText =
     _gridSizeTextController.text.trim();
@@ -125,6 +170,12 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       return;
     }
+    for (var s in sizesStr) {
+      if (int.tryParse(s) == null) {
+        showErrorSnackbar(context, "Input should only be 2 numbers that are co-ordinates");
+        return;
+      }
+    }
     List<int> sizesInt =
     sizesStr.map((e) => int.parse(e)).toList();
     setState(() {
@@ -132,17 +183,75 @@ class _HomeScreenState extends State<HomeScreen> {
       _maxGridY = sizesInt[1];
       robots = [];
       movementLogs = null;
+      _gridTextEnabled = false;
+    });
+    _robotCoordsFocusNode.requestFocus();
+  }
+
+  void _addRobot() {
+    setState(() {
+      String initPos = _robot1TextController.text.trim();
+      if (!initPos.contains(RegExp("^\\d+\\s+\\d+\\s+(N|E|S|W)\$"))) {
+        showErrorSnackbar(
+          context,
+          "Invalid characters detected!. Input should be like \"2 3 E\"",
+        );
+        return;
+      }
+
+      String path = _robotPathTextController.text.trim();
+      if (path.contains(RegExp("^((?!L|R|M).)*\$"))) {
+        showErrorSnackbar(
+          context,
+          "Invalid characters detected!. Supported characters are L, R and M",
+        );
+        return;
+      }
+      if (!path.contains("M")) {
+        showErrorSnackbar(context, "M is required to move the robot");
+        return;
+      }
+
+      List<String> allSplits = _robot1TextController.text.trim().split(
+        " ",
+      );
+      int x = int.parse(allSplits[0]);
+      int y = int.parse(allSplits[1]);
+      if (robots.any((r) => r.pos.x == x && r.pos.y == y)) {
+        showErrorSnackbar(context, "There's already a robot there!");
+        return;
+      }
+      if (x > _maxGridX || y > _maxGridY) {
+        showErrorSnackbar(
+          context,
+          "That's out of the grid! $x > $_maxGridX: $y > $_maxGridY",
+        );
+        return;
+      }
+      String direction = allSplits[2];
+      int newId = (robots.lastOrNull?.id ?? 0) + 1;
+      EuRobot newEuRobot = EuRobot(
+        newId,
+        GridPosition(x, y),
+        direction.getOrientation(),
+        path,
+      );
+      print("Orientation: ${newEuRobot.orientation?.turns}");
+      robots.add(newEuRobot);
+      _robotPathTextController.clear();
+      _robot1TextController.clear();
+      _robotCoordsFocusNode.requestFocus();
     });
   }
 
   void _moveRobots() {
-    for (var (i, r) in robots.indexed) {
+    robotLoop: for (var (i, r) in robots.indexed) {
       if (r.movementLocked) {
         showErrorSnackbar(context, "Robots ran their course. They are overworked!");
         return;
       }
       String path = r.path.substring(r.pathLengthCompleted, r.path.length);
-      for (var pathI=0; pathI < path.length; pathI++) {
+      pathLoop: for (var pathI=0; pathI < path.length; pathI++) {
         String action = path[pathI];
         switch (action) {
           case "L":
@@ -156,58 +265,37 @@ class _HomeScreenState extends State<HomeScreen> {
             r.movementLogs.add(
               EuRobotLog(
                   newMovementLogId,
-                  r.pos ?? GridPosition(0, 0),
+                  r.pos,
                   r.orientation ?? Constants.NORTH,
                   action
               ),
             );
             break;
           case "M":
-            GridPosition newGridPos = GridPosition(r.pos?.x ?? 0, r.pos?.y ?? 0);
-            switch (r.orientation) {
-              case Constants.NORTH:
-                newGridPos.y += 1;
-                break;
-              case Constants.EAST:
-                newGridPos.x += 1;
-                break;
-              case Constants.SOUTH:
-                newGridPos.y -= 1;
-                break;
-              case Constants.WEST:
-                newGridPos.x -= 1;
-                break;
-              default:
-                throw Exception(
-                  "Invalid Input: \"$action\" is an invalid character.",
-                );
-            }
+            GridPosition newGridPos = r.getMoveForwardGridPosition(action);
             /// Detection of collision with other robots at their current position
-            if (robots.any((ro) => ro.pos?.x == newGridPos.x && ro.pos?.y == newGridPos.y )) {
+            EuRobot? colRobot = newGridPos.firstCollidingRobot(robots.where((ro) => ro.id != r.id).toList());
+            if (colRobot != null) {
               print("Collision Detected");
-              EuRobot? colRobot = robots.firstWhereOrNull((ro) => ro.pos == newGridPos);
               r.collisionsDetected.add(
                 Collision(
                     CollisionType.ROBOT,
-                    newGridPos,
+                    r.pos,
                     r.orientation!,
-                    robotID: colRobot?.id,
+                    robotID: colRobot.id,
                 )
               );
-              break;
+              break pathLoop;
             }
-            if (
-            newGridPos.x > _maxGridX || newGridPos.x < 0
-            || newGridPos.y > _maxGridY || newGridPos.y < 0
-            ) {
+            if (newGridPos.isWithinBounds(_maxGridX, _maxGridY)) {
               r.collisionsDetected.add(
                 Collision(
                     CollisionType.BOUNDARY,
-                    r.pos!,
+                    r.pos,
                     r.orientation!
                 )
               );
-              break;
+              break pathLoop;
             }
             r.pos = newGridPos;
             r.pathLengthCompleted += 1;
@@ -215,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
             r.movementLogs.add(
               EuRobotLog(
                   newMovementLogId,
-                  r.pos ?? GridPosition(0, 0),
+                  r.pos,
                   r.orientation ?? Constants.NORTH,
                   action
               ),
@@ -282,10 +370,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                       () {
                     if (robots.any(
-                          (r) => r.pos?.x == columnI && r.pos?.y == rowI,
+                          (r) => r.pos.x == columnI && r.pos.y == rowI,
                     )) {
                       EuRobot matchedRobot = robots.firstWhere(
-                            (r) => r.pos?.x == columnI && r.pos?.y == rowI,
+                            (r) => r.pos.x == columnI && r.pos.y == rowI,
                       );
                       return rotateRobot(matchedRobot.orientation ?? Constants.NORTH, matchedRobot.id);
                     } else {
@@ -345,54 +433,11 @@ class _HomeScreenState extends State<HomeScreen> {
             controller: _robotPathTextController,
             textAlign: TextAlign.center,
             focusNode: _robotPathFocusNode,
+            onEditingComplete: _addRobot,
           ),
         ),
         ElevatedButton(
-          onPressed: () {
-            setState(() {
-              String path = _robotPathTextController.text.trim();
-              if (path.contains(RegExp("^((?!L|R|M).)*\$"))) {
-                showErrorSnackbar(
-                  context,
-                  "Invalid characters detected!. Supported characters are L, R and M",
-                );
-                return;
-              }
-              if (!path.contains("M")) {
-                showErrorSnackbar(context, "M is required to move the robot");
-                return;
-              }
-
-              List<String> allSplits = _robot1TextController.text.trim().split(
-                " ",
-              );
-              int x = int.parse(allSplits[0]);
-              int y = int.parse(allSplits[1]);
-              if (robots.any((r) => r.pos?.x == x && r.pos?.y == y)) {
-                showErrorSnackbar(context, "There's already a robot there!");
-                return;
-              }
-              if (x > _maxGridX || y > _maxGridY) {
-                showErrorSnackbar(
-                  context,
-                  "That's out of the grid! $x > $_maxGridX: $y > $_maxGridY",
-                );
-                return;
-              }
-              String direction = allSplits[2];
-              int newId = (robots.lastOrNull?.id ?? 0) + 1;
-              EuRobot newEuRobot = EuRobot(
-                newId,
-                GridPosition(x, y),
-                direction.getOrientation(),
-                path,
-              );
-              print("Orientation: ${newEuRobot.orientation?.turns}");
-              robots.add(newEuRobot);
-              _robot1TextController.clear();
-              _robotPathTextController.clear();
-            });
-          },
+          onPressed: _addRobot,
           child: Text("Add Robot"),
         ),
       ],
@@ -413,7 +458,7 @@ class _HomeScreenState extends State<HomeScreen> {
               String finalPos = "";
               String finalOrientation = "";
               if (r.movementLogs.length > 1) {
-                finalPos = " -> (${r.pos?.x},${r.pos?.y})";
+                finalPos = " -> (${r.pos.x},${r.pos.y})";
                 finalOrientation = " -> ${r.orientation?.cardinalAbbr}";
               }
               return Row(
@@ -461,6 +506,31 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               );
             }).toList(),
+      ),
+    );
+  }
+
+  Widget robotDisplayList2() {
+    if (robots.isEmpty) return Container();
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(),
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children:
+        robots.mapIndexed((i, r) {
+          onDelete() {
+            setState(() {
+              robots.remove(r);
+              robots = robots;
+              movementLogs = null;
+              selectedRobotID = null;
+            });
+          }
+          return RobotDetailsView(r, onDelete);
+        }).toList(),
       ),
     );
   }
