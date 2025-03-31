@@ -5,7 +5,7 @@ import 'package:maxhome_europa/models/grid_position.dart';
 extension GridPositionExtensions on GridPosition {
 
   EuRobot? firstCollidingRobot(List<EuRobot> otherRobots) {
-    return otherRobots.firstWhereOrNull((ro) => ro.pos == this);
+    return otherRobots.firstWhereOrNull((ro) => ro.pos.x == x && ro.pos.y == y);
   }
 
   bool isWithinBounds(int maxX, int maxY) =>

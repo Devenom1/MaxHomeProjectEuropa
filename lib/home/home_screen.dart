@@ -1,7 +1,6 @@
 // Create a stateful widget
 import 'dart:core';
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -68,67 +67,72 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              // Title
-              Text("Hey there! You've reached Europa."),
-              SizedBox(height: 10),
-              // message
+              // Welcome message
               Container(
                 padding: const EdgeInsets.all(24),
-                margin: const EdgeInsets.all(24),
+                margin: const EdgeInsets.symmetric(horizontal: 24),
                 decoration: BoxDecoration(
                   color: Colors.blueGrey.withAlpha(40),
-                  borderRadius: BorderRadius.circular(10)
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
+                  "Hey there! You've reached Europa."
                   "There's an iced up ocean here. Could you determine the area for me? "
                   "Input the top right co-ordinates of the grid separated by spaces. e.g. (4, 7)",
                 ),
               ),
-              Column(
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Text("Enter the top right grid co-ordinates below"),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+                  Column(
                     children: [
-                      SizedBox(
-                        width: 120,
-                        child: TextField(
-                          controller: _gridSizeTextController,
-                          decoration: const InputDecoration(
-                              hintText: "e.g. \"5 5\""
+                      Text("Enter the top right grid co-ordinates below"),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 120,
+                            child: TextField(
+                              controller: _gridSizeTextController,
+                              decoration: const InputDecoration(
+                                hintText: "e.g. \"5 5\"",
+                              ),
+                              enabled: _gridTextEnabled,
+                              onSubmitted: (value) => _visualizeGrid,
+                              onEditingComplete: _visualizeGrid,
+                              textInputAction: TextInputAction.done,
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                          enabled: _gridTextEnabled,
-                          onSubmitted: (value) => _visualizeGrid,
-                          onEditingComplete: _visualizeGrid,
-                          textInputAction: TextInputAction.done,
-                          textAlign: TextAlign.center,
+                          if (_maxGridX != -1 && _maxGridY != -1)
+                            IconButton(
+                              onPressed: _removeGridValues,
+                              icon: Icon(Icons.close),
+                            ),
+                        ],
+                      ),
+
+                      SizedBox(height: 10),
+                      ElevatedButton(
+                        onPressed: _visualizeGrid,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.remove_red_eye),
+                            SizedBox(width: 10),
+                            Text("Visualise ocean grid"),
+                          ],
                         ),
                       ),
-                      if (_maxGridX != -1 && _maxGridY != -1)
-                        IconButton(
-                            onPressed: _removeGridValues,
-                            icon: Icon(Icons.close)
-                        )
                     ],
                   ),
-
-                  SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: _visualizeGrid,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.remove_red_eye),
-                        SizedBox(width: 10),
-                        Text("Visualise ocean grid")
-                      ],
-                    ),
-                  ),
+                  if (_maxGridX != -1 && _maxGridY != -1) addRobotWidget(),
                 ],
               ),
+
               SizedBox(height: 10),
               generateGrid(_maxGridX, _maxGridY),
-              addRobotWidget(),
+
               SizedBox(height: 8),
               robotDisplayList2(),
               SizedBox(height: 8),
@@ -156,12 +160,12 @@ class _HomeScreenState extends State<HomeScreen> {
       _maxGridY = -1;
       _gridSizeTextController.clear();
       _gridTextEnabled = true;
+      robots = [];
     });
   }
 
   void _visualizeGrid() {
-    String gridSizeText =
-    _gridSizeTextController.text.trim();
+    String gridSizeText = _gridSizeTextController.text.trim();
     List<String> sizesStr = gridSizeText.split(" ");
     if (sizesStr.length > 2) {
       showErrorSnackbar(
@@ -172,12 +176,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     for (var s in sizesStr) {
       if (int.tryParse(s) == null) {
-        showErrorSnackbar(context, "Input should only be 2 numbers that are co-ordinates");
+        showErrorSnackbar(
+          context,
+          "Input should only be 2 numbers that are co-ordinates",
+        );
         return;
       }
     }
-    List<int> sizesInt =
-    sizesStr.map((e) => int.parse(e)).toList();
+    List<int> sizesInt = sizesStr.map((e) => int.parse(e)).toList();
     setState(() {
       _maxGridX = sizesInt[0];
       _maxGridY = sizesInt[1];
@@ -212,9 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
 
-      List<String> allSplits = _robot1TextController.text.trim().split(
-        " ",
-      );
+      List<String> allSplits = _robot1TextController.text.trim().split(" ");
       int x = int.parse(allSplits[0]);
       int y = int.parse(allSplits[1]);
       if (robots.any((r) => r.pos.x == x && r.pos.y == y)) {
@@ -245,13 +249,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _moveRobots() {
-    robotLoop: for (var (i, r) in robots.indexed) {
+    robotLoop:
+    for (var (i, r) in robots.indexed) {
       if (r.movementLocked) {
-        showErrorSnackbar(context, "Robots ran their course. They are overworked!");
-        return;
+        showErrorSnackbar(
+          context,
+          "Robot $i ran it's course. It is overworked!",
+        );
+        continue;
       }
       String path = r.path.substring(r.pathLengthCompleted, r.path.length);
-      pathLoop: for (var pathI=0; pathI < path.length; pathI++) {
+      pathLoop:
+      for (var pathI = 0; pathI < path.length; pathI++) {
         String action = path[pathI];
         switch (action) {
           case "L":
@@ -264,36 +273,35 @@ class _HomeScreenState extends State<HomeScreen> {
             int newMovementLogId = (r.movementLogs.lastOrNull?.id ?? 0) + 1;
             r.movementLogs.add(
               EuRobotLog(
-                  newMovementLogId,
-                  r.pos,
-                  r.orientation ?? Constants.NORTH,
-                  action
+                newMovementLogId,
+                r.pos,
+                r.orientation ?? Constants.NORTH,
+                action,
               ),
             );
             break;
           case "M":
             GridPosition newGridPos = r.getMoveForwardGridPosition(action);
+
             /// Detection of collision with other robots at their current position
-            EuRobot? colRobot = newGridPos.firstCollidingRobot(robots.where((ro) => ro.id != r.id).toList());
+            EuRobot? colRobot = newGridPos.firstCollidingRobot(
+              robots.where((ro) => ro.id != r.id).toList(),
+            );
             if (colRobot != null) {
               print("Collision Detected");
               r.collisionsDetected.add(
                 Collision(
-                    CollisionType.ROBOT,
-                    r.pos,
-                    r.orientation!,
-                    robotID: colRobot.id,
-                )
+                  CollisionType.ROBOT,
+                  r.pos,
+                  r.orientation!,
+                  robotID: colRobot.id,
+                ),
               );
               break pathLoop;
             }
             if (newGridPos.isWithinBounds(_maxGridX, _maxGridY)) {
               r.collisionsDetected.add(
-                Collision(
-                    CollisionType.BOUNDARY,
-                    r.pos,
-                    r.orientation!
-                )
+                Collision(CollisionType.BOUNDARY, r.pos, r.orientation!),
               );
               break pathLoop;
             }
@@ -302,10 +310,10 @@ class _HomeScreenState extends State<HomeScreen> {
             int newMovementLogId = (r.movementLogs.lastOrNull?.id ?? 0) + 1;
             r.movementLogs.add(
               EuRobotLog(
-                  newMovementLogId,
-                  r.pos,
-                  r.orientation ?? Constants.NORTH,
-                  action
+                newMovementLogId,
+                r.pos,
+                r.orientation ?? Constants.NORTH,
+                action,
               ),
             );
             break;
@@ -344,7 +352,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       decoration: BoxDecoration(
         image: DecorationImage(
-            image: ExactAssetImage("assets/icy_ocean.jpg"),
+          image: ExactAssetImage("assets/icy_ocean.jpg"),
           fit: BoxFit.cover,
         ),
       ),
@@ -360,51 +368,53 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
         children:
-        rowsIter.map((rowI) {
-          return TableRow(
-            children:
-            columnsIter.map((columnI) {
-              return Column(
-                //mainAxisAlignment: MainAxisAlignment.center,
-                //crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                      () {
-                    if (robots.any(
-                          (r) => r.pos.x == columnI && r.pos.y == rowI,
-                    )) {
-                      EuRobot matchedRobot = robots.firstWhere(
-                            (r) => r.pos.x == columnI && r.pos.y == rowI,
-                      );
-                      return rotateRobot(matchedRobot.orientation ?? Constants.NORTH, matchedRobot.id);
-                    } else {
-                      return SizedBox(width: 45, height: 45);
-                    }
-                  }(),
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 2.0,
-                      ),
-                      child: Container(
-                        color: Colors.black,
-                        child: Text(
-                          "($columnI, $rowI)",
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white
+            rowsIter.map((rowI) {
+              return TableRow(
+                children:
+                    columnsIter.map((columnI) {
+                      return Column(
+                        //mainAxisAlignment: MainAxisAlignment.center,
+                        //crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          () {
+                            if (robots.any(
+                              (r) => r.pos.x == columnI && r.pos.y == rowI,
+                            )) {
+                              EuRobot matchedRobot = robots.firstWhere(
+                                (r) => r.pos.x == columnI && r.pos.y == rowI,
+                              );
+                              return rotateRobot(
+                                matchedRobot.orientation ?? Constants.NORTH,
+                                matchedRobot.id,
+                              );
+                            } else {
+                              return SizedBox(width: 45, height: 45);
+                            }
+                          }(),
+                          Align(
+                            alignment: Alignment.bottomRight,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 2.0,
+                              ),
+                              child: Container(
+                                color: Colors.black,
+                                child: Text(
+                                  "($columnI, $rowI)",
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                        ],
+                      );
+                    }).toList(),
               );
             }).toList(),
-          );
-        }).toList(),
       ),
     );
   }
@@ -413,33 +423,47 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_maxGridX == -1 && _maxGridY == -1) {
       return Container();
     }
-    return Row(
+    return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         SizedBox(
-          width: 80,
+          width: 200,
           child: TextField(
             controller: _robot1TextController,
+            decoration: InputDecoration(
+              label: Text(
+                "Input the co-ordinates and directions here",
+                style: TextStyle(fontSize: 10),
+              ),
+              floatingLabelBehavior: FloatingLabelBehavior.always,
+              hintText: "e.g. \"1 2 N\"",
+            ),
             textAlign: TextAlign.center,
             onEditingComplete: () {
               _robotPathFocusNode.requestFocus();
             },
           ),
         ),
-        SizedBox(width: 8),
+        SizedBox(height: 8),
         SizedBox(
           width: 200,
           child: TextField(
             controller: _robotPathTextController,
+            decoration: InputDecoration(
+              label: Text(
+                "Input the movement path here",
+                style: TextStyle(fontSize: 10),
+              ),
+              floatingLabelBehavior: FloatingLabelBehavior.always,
+              hintText: "e.g. \"LMLMRMLMRM\"",
+            ),
             textAlign: TextAlign.center,
             focusNode: _robotPathFocusNode,
             onEditingComplete: _addRobot,
           ),
         ),
-        ElevatedButton(
-          onPressed: _addRobot,
-          child: Text("Add Robot"),
-        ),
+        SizedBox(height: 8),
+        ElevatedButton(onPressed: _addRobot, child: Text("Add Robot")),
       ],
     );
   }
@@ -468,7 +492,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   SizedBox(width: 10),
                   Column(
                     children: [
-                      Text("Position: (${r.initPos.x},${r.initPos.y})$finalPos, Orientation: ${r.initOrientation.cardinalAbbr}$finalOrientation\npath: ${r.path}"),
+                      Text(
+                        "Position: (${r.initPos.x},${r.initPos.y})$finalPos, Orientation: ${r.initOrientation.cardinalAbbr}$finalOrientation\npath: ${r.path}",
+                      ),
                     ],
                   ),
                   SizedBox(width: 10),
@@ -499,10 +525,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: Colors.redAccent,
-                        borderRadius: BorderRadius.all(Radius.circular(8))
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
                       ),
-                      child: Text("Will collide!", style: TextStyle(color: Colors.white)),
-                    )
+                      child: Text(
+                        "Will collide!",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
                 ],
               );
             }).toList(),
@@ -520,17 +549,18 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children:
-        robots.mapIndexed((i, r) {
-          onDelete() {
-            setState(() {
-              robots.remove(r);
-              robots = robots;
-              movementLogs = null;
-              selectedRobotID = null;
-            });
-          }
-          return RobotDetailsView(r, onDelete);
-        }).toList(),
+            robots.mapIndexed((i, r) {
+              onDelete() {
+                setState(() {
+                  robots.remove(r);
+                  robots = robots;
+                  movementLogs = null;
+                  selectedRobotID = null;
+                });
+              }
+
+              return RobotDetailsView(r, onDelete);
+            }).toList(),
       ),
     );
   }
@@ -626,15 +656,14 @@ class _HomeScreenState extends State<HomeScreen> {
               shape: CircleBorder(),
               color: Colors.green,
             ),
-            child: Center(child: Text(
-              "$robotID",
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16
+            child: Center(
+              child: Text(
+                "$robotID",
+                style: TextStyle(color: Colors.white, fontSize: 16),
               ),
-            )),
+            ),
           ),
-        )
+        ),
       ],
     );
   }
