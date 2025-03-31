@@ -10,6 +10,8 @@ import 'package:maxhome_europa/models/eurobot.dart';
 import 'package:maxhome_europa/models/grid_position.dart';
 import 'package:maxhome_europa/models/orientation.dart' as euro_ori;
 
+import 'models/Collision.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -28,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final TextEditingController _robotPathTextController =
       TextEditingController();
+  final FocusNode _robotPathFocusNode = FocusNode();
 
   List<EuRobot> robots = [];
   List<EuRobotLog>? movementLogs;
@@ -71,31 +74,17 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: TextField(controller: _gridSizeTextController),
+                    child: TextField(
+                        controller: _gridSizeTextController,
+                      onSubmitted: (value) => _visualizeGrid,
+                      onEditingComplete: _visualizeGrid,
+                      textInputAction: TextInputAction.done,
+                    ),
                   ),
                   SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        String gridSizeText =
-                            _gridSizeTextController.text.trim();
-                        List<String> sizesStr = gridSizeText.split(" ");
-                        if (sizesStr.length > 2) {
-                          showErrorSnackbar(
-                            context,
-                            "Oh Oh. We require it for a 2D Grid. We are not that advanced!",
-                          );
-                          return;
-                        }
-                        List<int> sizesInt =
-                            sizesStr.map((e) => int.parse(e)).toList();
-                        setState(() {
-                          _maxGridX = sizesInt[0];
-                          _maxGridY = sizesInt[1];
-                          robots = [];
-                          movementLogs = null;
-                        });
-                      },
+                      onPressed: _visualizeGrid,
                       child: Text("Visualise ocean grid"),
                     ),
                   ),
@@ -125,58 +114,123 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _visualizeGrid() {
+    String gridSizeText =
+    _gridSizeTextController.text.trim();
+    List<String> sizesStr = gridSizeText.split(" ");
+    if (sizesStr.length > 2) {
+      showErrorSnackbar(
+        context,
+        "Oh Oh. We require it for a 2D Grid. We are not that advanced!",
+      );
+      return;
+    }
+    List<int> sizesInt =
+    sizesStr.map((e) => int.parse(e)).toList();
+    setState(() {
+      _maxGridX = sizesInt[0];
+      _maxGridY = sizesInt[1];
+      robots = [];
+      movementLogs = null;
+    });
+  }
+
   void _moveRobots() {
     for (var (i, r) in robots.indexed) {
       if (r.movementLocked) {
         showErrorSnackbar(context, "Robots ran their course. They are overworked!");
         return;
       }
-      String path = r.path;
-      for (var rune in path.runes) {
-        String action = String.fromCharCode(rune);
+      String path = r.path.substring(r.pathLengthCompleted, r.path.length);
+      for (var pathI=0; pathI < path.length; pathI++) {
+        String action = path[pathI];
         switch (action) {
           case "L":
           case "R":
-            r.orientation = r.orientation?.getNewOrientation(
-              action,
-            );
+            r.orientation = r.orientation?.getNewOrientation(action);
             setState(() {
               robots[i].orientation = r.orientation;
             });
+            r.pathLengthCompleted += 1;
+            int newMovementLogId = (r.movementLogs.lastOrNull?.id ?? 0) + 1;
+            r.movementLogs.add(
+              EuRobotLog(
+                  newMovementLogId,
+                  r.pos ?? GridPosition(0, 0),
+                  r.orientation ?? Constants.NORTH,
+                  action
+              ),
+            );
             break;
           case "M":
+            GridPosition newGridPos = GridPosition(r.pos?.x ?? 0, r.pos?.y ?? 0);
             switch (r.orientation) {
               case Constants.NORTH:
-                r.pos?.y += 1;
+                newGridPos.y += 1;
                 break;
               case Constants.EAST:
-                r.pos?.x += 1;
+                newGridPos.x += 1;
                 break;
               case Constants.SOUTH:
-                r.pos?.y -= 1;
+                newGridPos.y -= 1;
                 break;
               case Constants.WEST:
-                r.pos?.x -= 1;
+                newGridPos.x -= 1;
                 break;
               default:
                 throw Exception(
                   "Invalid Input: \"$action\" is an invalid character.",
                 );
             }
+            /// Detection of collision with other robots at their current position
+            if (robots.any((ro) => ro.pos?.x == newGridPos.x && ro.pos?.y == newGridPos.y )) {
+              print("Collision Detected");
+              EuRobot? colRobot = robots.firstWhereOrNull((ro) => ro.pos == newGridPos);
+              r.collisionsDetected.add(
+                Collision(
+                    CollisionType.ROBOT,
+                    newGridPos,
+                    r.orientation!,
+                    robotID: colRobot?.id,
+                )
+              );
+              break;
+            }
+            if (
+            newGridPos.x > _maxGridX || newGridPos.x < 0
+            || newGridPos.y > _maxGridY || newGridPos.y < 0
+            ) {
+              r.collisionsDetected.add(
+                Collision(
+                    CollisionType.BOUNDARY,
+                    r.pos!,
+                    r.orientation!
+                )
+              );
+              break;
+            }
+            r.pos = newGridPos;
+            r.pathLengthCompleted += 1;
+            int newMovementLogId = (r.movementLogs.lastOrNull?.id ?? 0) + 1;
+            r.movementLogs.add(
+              EuRobotLog(
+                  newMovementLogId,
+                  r.pos ?? GridPosition(0, 0),
+                  r.orientation ?? Constants.NORTH,
+                  action
+              ),
+            );
             break;
           default:
             throw Exception(
               "Invalid Input: \"$action\" is an invalid character.",
             );
         }
-        r.movementLogs.add(
-          EuRobotLog(r.pos ?? GridPosition(0, 0), r.orientation ?? Constants.NORTH, action),
-        );
         setState(() {
           robots[i] = r;
         });
       }
-      r.movementLocked = true;
+      r.movementLocked = r.pathLengthCompleted == r.path.length;
     }
     setState(() {
       robots = robots;
@@ -279,14 +333,18 @@ class _HomeScreenState extends State<HomeScreen> {
           child: TextField(
             controller: _robot1TextController,
             textAlign: TextAlign.center,
+            onEditingComplete: () {
+              _robotPathFocusNode.requestFocus();
+            },
           ),
         ),
         SizedBox(width: 8),
         SizedBox(
-          width: 120,
+          width: 200,
           child: TextField(
             controller: _robotPathTextController,
             textAlign: TextAlign.center,
+            focusNode: _robotPathFocusNode,
           ),
         ),
         ElevatedButton(
@@ -331,6 +389,8 @@ class _HomeScreenState extends State<HomeScreen> {
               );
               print("Orientation: ${newEuRobot.orientation?.turns}");
               robots.add(newEuRobot);
+              _robot1TextController.clear();
+              _robotPathTextController.clear();
             });
           },
           child: Text("Add Robot"),
@@ -389,6 +449,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     icon: Icon(Icons.delete_forever),
                   ),
+                  if (r.collisionsDetected.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent,
+                        borderRadius: BorderRadius.all(Radius.circular(8))
+                      ),
+                      child: Text("Will collide!", style: TextStyle(color: Colors.white)),
+                    )
                 ],
               );
             }).toList(),

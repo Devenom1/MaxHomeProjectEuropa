@@ -1,5 +1,6 @@
 
 import 'package:maxhome_europa/constants.dart';
+import 'package:maxhome_europa/models/Collision.dart';
 import 'package:maxhome_europa/models/grid_position.dart';
 import 'package:maxhome_europa/models/orientation.dart';
 
@@ -11,7 +12,9 @@ class EuRobot {
   List<EuRobotLog> movementLogs = [];
   GridPosition? pos;
   Orientation? orientation;
+  int pathLengthCompleted = 0;
   bool movementLocked = false;
+  List<Collision> collisionsDetected = [];
 
   EuRobot(this.id, this.initPos, this.initOrientation, this.path) {
     pos = GridPosition(initPos.x, initPos.y);
@@ -21,10 +24,11 @@ class EuRobot {
 }
 
 class EuRobotLog {
+  int id;
   GridPosition pos;
   Orientation orientation;
   String change;
   bool collided = false;
 
-  EuRobotLog(this.pos, this.orientation, this.change);
+  EuRobotLog(this.id, this.pos, this.orientation, this.change);
 }
