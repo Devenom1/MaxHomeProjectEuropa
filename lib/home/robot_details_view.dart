@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:maxhome_europa/constants.dart';
 import 'package:maxhome_europa/home/robot_history_details_view.dart';
+import 'package:maxhome_europa/home/robot_scanned_cells_view.dart';
 import 'package:maxhome_europa/models/Collision.dart';
 import 'package:maxhome_europa/models/eurobot.dart';
 import 'package:maxhome_europa/models/orientation.dart' as euro_ori;
@@ -18,13 +19,16 @@ class RobotDetailsView extends StatelessWidget {
     List<TableRow> tableRows = [
       _detailsRow(
         "Initial Position",
-        "(${robot.initPos.x}, ${robot.initPos.y}) ${robot.initOrientation.cardinalName}",
+        "${robot.initPos} ${robot.initOrientation.cardinalName}",
       ),
       _detailsRow("Path", robot.path),
       if (robot.pathLengthCompleted > 0) _pathCompletedRow("Path Completed"),
 
       if (robot.pos != robot.initPos)
-        _detailsRow("Current Position", "(${robot.pos.x}, ${robot.pos.y}) ${robot.orientation.cardinalName}"),
+        _detailsRow(
+          "Current Position",
+          "${robot.pos} ${robot.orientation.cardinalName}",
+        ),
     ];
     List<TableRow>? collisionDetailsRows = _collisionDetails();
     if (collisionDetailsRows != null) {
@@ -51,7 +55,9 @@ class RobotDetailsView extends StatelessWidget {
             ],
           ),
           if (robot.movementLogs.isNotEmpty)
-            RobotHistoryDetailsView(robot, onDelete)
+            RobotHistoryDetailsView(robot, onDelete),
+          if (robot.gridCellsScanned.isNotEmpty)
+            RobotScannedCellsView(robot, onDelete),
         ],
       ),
     );
@@ -111,6 +117,16 @@ class RobotDetailsView extends StatelessWidget {
     );
   }
 
+  TableRow _customDetailsRow(String title, Widget textWidget) {
+    return TableRow(
+      children: [
+        Text("$title: ", style: TextStyle(fontWeight: FontWeight.bold)),
+        SizedBox(width: 4),
+        textWidget,
+      ],
+    );
+  }
+
   TableRow _pathCompletedRow(String title) {
     String completedText = robot.path.substring(0, robot.pathLengthCompleted);
     TextStyle completedTextStyle = TextStyle(color: Colors.lightGreen);
@@ -152,15 +168,39 @@ class RobotDetailsView extends StatelessWidget {
           SizedBox(height: 10),
         ],
       ),
-      _detailsRow("Possible Collision", "YES"),
-      _detailsRow(
+      _customDetailsRow("Possible Collision", errorTextWidget("YES")),
+      _customDetailsRow(
         "Collision With",
-        collision.collisionType == CollisionType.BOUNDARY ? "WALL" : "ROBOT",
+        errorTextWidget(
+          collision.collisionType == CollisionType.BOUNDARY ? "WALL" : "ROBOT",
+        ),
       ),
       _detailsRow(
         "Collision Point",
-        "(${collision.atPos.x}, ${collision.atPos.y}) ${robot.orientation.cardinalName}",
+        "${collision.atPos} ${robot.orientation.cardinalName}",
       ),
     ];
+  }
+
+  Widget errorTextWidget(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
+        backgroundColor: Colors.redAccent,
+      ),
+    );
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        color: Colors.redAccent,
+      ),
+      child: Text(
+        text,
+        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+      ),
+    );
   }
 }

@@ -45,11 +45,7 @@ class RobotHistoryDetailsView extends StatelessWidget {
           Center(child: Text(i.toString())),
           Center(child: rotateRobot(r.orientation, robot.id)),
           //SizedBox(width: 10),
-          Center(
-            child: Text(
-              "(${r.pos.x}, ${r.pos.y})",
-            ),
-          ),
+          Center(child: Text(r.pos.toString())),
           Center(child: Text(r.orientation.cardinalName)),
           //SizedBox(width: 10),
           Center(child: Icon(actionIcon)),

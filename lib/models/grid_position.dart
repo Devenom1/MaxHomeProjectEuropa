@@ -5,12 +5,15 @@ class GridPosition {
 
   GridPosition(this.x, this.y);
 
-  /*@override
+  @override
   bool operator ==(Object other) {
-    return x == (other as GridPosition).x && y == other.y;
+    if (identical(this, other)) return true;
+    return other is GridPosition && other.x == x && other.y == y;
   }
 
   @override
-  int get hashCode => Object.hash(x, y);*/
+  int get hashCode => x.hashCode ^ y.hashCode;
 
+  @override
+  String toString() => "($x, $y)";
 }
