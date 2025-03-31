@@ -154,6 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// This method resets the grid values and robots to their initial state
   void _removeGridValues() {
     setState(() {
       _maxGridX = -1;
@@ -164,6 +165,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  /// This method is used to set up the grid
+  /// It validates the input just like we would in a terminal application
   void _visualizeGrid() {
     String gridSizeText = _gridSizeTextController.text.trim();
     List<String> sizesStr = gridSizeText.split(" ");
@@ -187,10 +190,10 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _maxGridX = sizesInt[0];
       _maxGridY = sizesInt[1];
-      robots = [];
-      movementLogs = null;
-      _gridTextEnabled = false;
+      robots = []; // reset robots if grid is redrawn with a new size
+      _gridTextEnabled = false; // disable grid dimensions text editing
     });
+    /// request focus on the robot co-ordinates text box
     _robotCoordsFocusNode.requestFocus();
   }
 
@@ -249,11 +252,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _moveRobots() {
+    /// Iterate through all existing Robots
     for (var (i, r) in robots.indexed) {
-      if (r.pathCompleted) {
+      /// Here we check if the current robot has complete it's path
+      /// If it has we continue on to the next one
+      /// This is done so that we can check if any robots were previous
+      /// blocked by others and can continue now
+      if (r.pathComplete()) {
         showErrorSnackbar(
           context,
-          "Robot $i ran it's course. It is overworked!",
+          "Robot ${i + 1} ran it's course. It is overworked!",
         );
         continue;
       }
@@ -315,7 +323,7 @@ class _HomeScreenState extends State<HomeScreen> {
           robots[i] = r;
         });
       }
-      r.pathCompleted = r.pathLengthCompleted == r.path.length;
+
     }
     setState(() {
       robots = robots;

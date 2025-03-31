@@ -13,7 +13,6 @@ class EuRobot {
   GridPosition pos = GridPosition(0, 0);
   Orientation orientation = Constants.NORTH;
   int pathLengthCompleted = 0;
-  bool pathCompleted = false;
   List<Collision> collisionsDetected = [];
 
   EuRobot(this.id, this.initPos, this.initOrientation, this.path) {

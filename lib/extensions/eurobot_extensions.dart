@@ -1,8 +1,6 @@
-import 'package:collection/collection.dart';
 import 'package:maxhome_europa/constants.dart';
 import 'package:maxhome_europa/models/eurobot.dart';
 import 'package:maxhome_europa/models/grid_position.dart';
-import 'package:maxhome_europa/models/orientation.dart';
 
 extension EurobotExtensions on EuRobot {
 
@@ -28,5 +26,7 @@ extension EurobotExtensions on EuRobot {
     }
     return newGridPos;
   }
+
+  bool pathComplete() => pathLengthCompleted == path.length;
 
 }
