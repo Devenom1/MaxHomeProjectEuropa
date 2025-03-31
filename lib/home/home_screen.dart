@@ -146,11 +146,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+      /*floatingActionButton: FloatingActionButton(
         onPressed: () {},
         tooltip: 'Increment',
         child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),*/ // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 
@@ -240,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
         direction.getOrientation(),
         path,
       );
-      print("Orientation: ${newEuRobot.orientation?.turns}");
+      print("Orientation: ${newEuRobot.orientation.turns}");
       robots.add(newEuRobot);
       _robotPathTextController.clear();
       _robot1TextController.clear();
@@ -249,9 +249,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _moveRobots() {
-    robotLoop:
     for (var (i, r) in robots.indexed) {
-      if (r.movementLocked) {
+      if (r.pathCompleted) {
         showErrorSnackbar(
           context,
           "Robot $i ran it's course. It is overworked!",
@@ -265,19 +264,14 @@ class _HomeScreenState extends State<HomeScreen> {
         switch (action) {
           case "L":
           case "R":
-            r.orientation = r.orientation?.getNewOrientation(action);
+            r.orientation = r.orientation.getNewOrientation(action);
             setState(() {
               robots[i].orientation = r.orientation;
             });
             r.pathLengthCompleted += 1;
             int newMovementLogId = (r.movementLogs.lastOrNull?.id ?? 0) + 1;
             r.movementLogs.add(
-              EuRobotLog(
-                newMovementLogId,
-                r.pos,
-                r.orientation ?? Constants.NORTH,
-                action,
-              ),
+              EuRobotLog(newMovementLogId, r.pos, r.orientation, action),
             );
             break;
           case "M":
@@ -293,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Collision(
                   CollisionType.ROBOT,
                   r.pos,
-                  r.orientation!,
+                  r.orientation,
                   robotID: colRobot.id,
                 ),
               );
@@ -301,7 +295,7 @@ class _HomeScreenState extends State<HomeScreen> {
             }
             if (newGridPos.isWithinBounds(_maxGridX, _maxGridY)) {
               r.collisionsDetected.add(
-                Collision(CollisionType.BOUNDARY, r.pos, r.orientation!),
+                Collision(CollisionType.BOUNDARY, r.pos, r.orientation),
               );
               break pathLoop;
             }
@@ -309,12 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
             r.pathLengthCompleted += 1;
             int newMovementLogId = (r.movementLogs.lastOrNull?.id ?? 0) + 1;
             r.movementLogs.add(
-              EuRobotLog(
-                newMovementLogId,
-                r.pos,
-                r.orientation ?? Constants.NORTH,
-                action,
-              ),
+              EuRobotLog(newMovementLogId, r.pos, r.orientation, action),
             );
             break;
           default:
@@ -326,7 +315,7 @@ class _HomeScreenState extends State<HomeScreen> {
           robots[i] = r;
         });
       }
-      r.movementLocked = r.pathLengthCompleted == r.path.length;
+      r.pathCompleted = r.pathLengthCompleted == r.path.length;
     }
     setState(() {
       robots = robots;
@@ -384,7 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 (r) => r.pos.x == columnI && r.pos.y == rowI,
                               );
                               return rotateRobot(
-                                matchedRobot.orientation ?? Constants.NORTH,
+                                matchedRobot.orientation,
                                 matchedRobot.id,
                               );
                             } else {
@@ -483,12 +472,12 @@ class _HomeScreenState extends State<HomeScreen> {
               String finalOrientation = "";
               if (r.movementLogs.length > 1) {
                 finalPos = " -> (${r.pos.x},${r.pos.y})";
-                finalOrientation = " -> ${r.orientation?.cardinalAbbr}";
+                finalOrientation = " -> ${r.orientation.cardinalAbbr}";
               }
               return Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  rotateRobot(r.orientation ?? Constants.NORTH, r.id),
+                  rotateRobot(r.orientation, r.id),
                   SizedBox(width: 10),
                   Column(
                     children: [

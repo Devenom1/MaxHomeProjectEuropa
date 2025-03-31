@@ -18,30 +18,13 @@ class RobotDetailsView extends StatelessWidget {
     List<TableRow> tableRows = [
       _detailsRow(
         "Initial Position",
-        "(${robot.initPos.x}, ${robot.initPos.y})",
+        "(${robot.initPos.x}, ${robot.initPos.y}) ${robot.initOrientation.cardinalName}",
       ),
-      _detailsRow("Initial Orientation", robot.initOrientation.cardinalName),
       _detailsRow("Path", robot.path),
-      if (robot.pathLengthCompleted > 0)
-        _detailsRow(
-          "Path Completed",
-          robot.path.substring(0, robot.pathLengthCompleted),
-        ),
-      if (robot.pathLengthCompleted > 0 &&
-          robot.pathLengthCompleted < robot.path.length)
-        _detailsRow(
-          "Path Pending",
-          robot.path.substring(robot.pathLengthCompleted, robot.path.length),
-        ),
       if (robot.pathLengthCompleted > 0) _pathCompletedRow("Path Completed"),
 
       if (robot.pos != robot.initPos)
-        _detailsRow("Current Position", "(${robot.pos?.x}, ${robot.pos?.y})"),
-      if (robot.pos != robot.initPos)
-        _detailsRow(
-          "Current Orientation",
-          "${robot.orientation?.cardinalName}",
-        ),
+        _detailsRow("Current Position", "(${robot.pos.x}, ${robot.pos.y}) ${robot.orientation.cardinalName}"),
     ];
     List<TableRow>? collisionDetailsRows = _collisionDetails();
     if (collisionDetailsRows != null) {
@@ -61,7 +44,7 @@ class RobotDetailsView extends StatelessWidget {
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              rotateRobot(robot.orientation ?? Constants.NORTH, robot.id),
+              rotateRobot(robot.orientation, robot.id),
               SizedBox(width: 8),
               Expanded(child: Table(children: tableRows)),
               IconButton(onPressed: onDelete, icon: Icon(Icons.delete_forever)),
@@ -176,7 +159,7 @@ class RobotDetailsView extends StatelessWidget {
       ),
       _detailsRow(
         "Collision Point",
-        "(${collision.atPos.x}, ${collision.atPos.y}) ${robot.orientation?.cardinalName}",
+        "(${collision.atPos.x}, ${collision.atPos.y}) ${robot.orientation.cardinalName}",
       ),
     ];
   }

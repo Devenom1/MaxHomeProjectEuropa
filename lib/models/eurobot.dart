@@ -11,9 +11,9 @@ class EuRobot {
   String path;
   List<EuRobotLog> movementLogs = [];
   GridPosition pos = GridPosition(0, 0);
-  Orientation? orientation;
+  Orientation orientation = Constants.NORTH;
   int pathLengthCompleted = 0;
-  bool movementLocked = false;
+  bool pathCompleted = false;
   List<Collision> collisionsDetected = [];
 
   EuRobot(this.id, this.initPos, this.initOrientation, this.path) {
