@@ -1,0 +1,30 @@
+
+import 'package:maxhome_europa/constants.dart';
+import 'package:maxhome_europa/models/grid_position.dart';
+import 'package:maxhome_europa/models/orientation.dart';
+
+class EuRobot {
+  int id;
+  GridPosition initPos;
+  Orientation initOrientation;
+  String path;
+  List<EuRobotLog> movementLogs = [];
+  GridPosition? pos;
+  Orientation? orientation;
+  bool movementLocked = false;
+
+  EuRobot(this.id, this.initPos, this.initOrientation, this.path) {
+    pos = GridPosition(initPos.x, initPos.y);
+    orientation = Constants.allOrientations.firstWhere((o) =>
+    o.cardinalName == initOrientation.cardinalName);
+  }
+}
+
+class EuRobotLog {
+  GridPosition pos;
+  Orientation orientation;
+  String change;
+  bool collided = false;
+
+  EuRobotLog(this.pos, this.orientation, this.change);
+}
