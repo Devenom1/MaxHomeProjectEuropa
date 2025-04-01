@@ -86,47 +86,62 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Column(
                     children: [
-                      Text("Enter the top right grid co-ordinates below"),
+                      //Text("Enter the top right grid co-ordinates below"),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          SizedBox(
-                            width: 120,
-                            child: TextField(
-                              controller: _gridSizeTextController,
-                              decoration: const InputDecoration(
-                                hintText: "e.g. \"5 5\"",
+                          Stack(
+                            children: [
+                              SizedBox(
+                                width: 120,
+                                child: TextField(
+                                  controller: _gridSizeTextController,
+                                  decoration: const InputDecoration(
+                                      hintText: "e.g. \"5 5\"",
+                                      label: Text("Top right grid co-ordinates", style: TextStyle(fontSize: 10)),
+                                      floatingLabelBehavior: FloatingLabelBehavior.always
+                                  ),
+                                  enabled: _gridTextEnabled,
+                                  onSubmitted: (value) => _visualizeGrid,
+                                  onEditingComplete: _visualizeGrid,
+                                  textInputAction: TextInputAction.done,
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
-                              enabled: _gridTextEnabled,
-                              onSubmitted: (value) => _visualizeGrid,
-                              onEditingComplete: _visualizeGrid,
-                              textInputAction: TextInputAction.done,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          if (_maxGridX != -1 && _maxGridY != -1)
-                            IconButton(
-                              onPressed: _removeGridValues,
-                              icon: Icon(Icons.close),
-                            ),
+                              if (_maxGridX != -1 && _maxGridY != -1)
+                                Positioned(
+                                  top: 15,
+                                  bottom: 15,
+                                  right: 5,
+                                  child: IconButton(
+                                    onPressed: _removeGridValues,
+                                    icon: Icon(Icons.close),
+                                  ),
+                                ),
+                            ]
+                          )
+
                         ],
                       ),
 
-                      SizedBox(height: 10),
-                      ElevatedButton(
-                        onPressed: _visualizeGrid,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.remove_red_eye),
-                            SizedBox(width: 10),
-                            Text("Visualise ocean grid"),
-                          ],
+                      if (_maxGridX == -1 && _maxGridY == -1)
+                        SizedBox(height: 10),
+                      if (_maxGridX == -1 && _maxGridY == -1)
+                        ElevatedButton(
+                          onPressed: _visualizeGrid,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.remove_red_eye),
+                              SizedBox(width: 10),
+                              Text("Visualise\nocean\ngrid", textAlign: TextAlign.center),
+                            ],
+                          ),
                         ),
-                      ),
                     ],
                   ),
-                  if (_maxGridX != -1 && _maxGridY != -1) addRobotWidget(),
+                  if (_maxGridX != -1 && _maxGridY != -1)
+                    Expanded(child: addRobotWidget()),
                 ],
               ),
 
