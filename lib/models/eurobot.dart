@@ -1,4 +1,6 @@
 
+import 'dart:collection';
+
 import 'package:maxhome_europa/constants.dart';
 import 'package:maxhome_europa/models/Collision.dart';
 import 'package:maxhome_europa/models/grid_position.dart';
@@ -14,11 +16,14 @@ class EuRobot {
   Orientation orientation = Constants.NORTH;
   int pathLengthCompleted = 0;
   List<Collision> collisionsDetected = [];
+  bool peripheralView = true;
+  HashMap<GridPosition, int> gridCellsScanned = HashMap();
 
   EuRobot(this.id, this.initPos, this.initOrientation, this.path) {
     pos = GridPosition(initPos.x, initPos.y);
     orientation = Constants.allOrientations.firstWhere((o) =>
-    o.cardinalName == initOrientation.cardinalName);
+    o == initOrientation);
+    gridCellsScanned.addAll({initPos: 1});
   }
 }
 
