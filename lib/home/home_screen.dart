@@ -252,6 +252,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _moveRobots() {
+    Map<GridPosition, int> occupiedPositions = { for (var r in robots) r.pos : r.id };
+
     /// Iterate through all existing Robots
     for (var (i, r) in robots.indexed) {
       /// Here we check if the current robot has complete it's path
@@ -288,28 +290,27 @@ class _HomeScreenState extends State<HomeScreen> {
             print("Path Travelled 2. $i : $path");
 
             /// Detection of collision with other robots at their current position
-            EuRobot? colRobot = newGridPos.firstCollidingRobot(
-              robots.where((ro) => ro.id != r.id).toList(),
-            );
-            if (colRobot != null) {
+            if (occupiedPositions.containsKey(newGridPos)) {
               print("Collision Detected");
               r.collisionsDetected.add(
                 Collision(
                   CollisionType.ROBOT,
                   r.pos,
                   r.orientation,
-                  robotID: colRobot.id,
+                  robotID: occupiedPositions[newGridPos],
                 ),
               );
               break pathLoop;
             }
-            if (newGridPos.isWithinBounds(_maxGridX, _maxGridY)) {
+            if (newGridPos.isOutsideBounds(_maxGridX, _maxGridY)) {
               r.collisionsDetected.add(
                 Collision(CollisionType.BOUNDARY, r.pos, r.orientation),
               );
               break pathLoop;
             }
+            occupiedPositions.remove(r.pos);
             r.pos = newGridPos;
+            occupiedPositions[r.pos] = r.id;
             r.pathLengthCompleted += 1;
             int newMovementLogId = (r.movementLogs.lastOrNull?.id ?? 0) + 1;
             r.movementLogs.add(

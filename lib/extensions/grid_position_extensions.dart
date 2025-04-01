@@ -8,7 +8,7 @@ extension GridPositionExtensions on GridPosition {
     return otherRobots.firstWhereOrNull((ro) => ro.pos == this);
   }
 
-  bool isWithinBounds(int maxX, int maxY) =>
+  bool isOutsideBounds(int maxX, int maxY) =>
     x > maxX || x < 0 || y > maxY || y < 0;
 
 }
