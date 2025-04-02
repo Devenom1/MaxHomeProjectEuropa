@@ -5,9 +5,11 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:maxhome_europa/constants.dart';
+import 'package:maxhome_europa/dialogs/optimise_path_dialog.dart';
 import 'package:maxhome_europa/extensions/eurobot_extensions.dart';
 import 'package:maxhome_europa/extensions/grid_position_extensions.dart';
 import 'package:maxhome_europa/extensions/orientation_extensions.dart';
+import 'package:maxhome_europa/extensions/string_extensions.dart';
 import 'package:maxhome_europa/home/robot_details_view.dart';
 import 'package:maxhome_europa/models/eurobot.dart';
 import 'package:maxhome_europa/models/grid_position.dart';
@@ -180,6 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  bool skipOptimisation = false;
   /// This method is used to set up the grid
   /// It validates the input just like we would in a terminal application
   void _visualizeGrid() {
@@ -234,6 +237,26 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!path.contains("M")) {
         showErrorSnackbar(context, "M is required to move the robot");
         return;
+      }
+      if (!skipOptimisation && !path.isPathOptimised()) {
+        showDialog(
+            context: context,
+            builder: (context) => OptimizePathDialog(
+                currentPath: path,
+                onOptimize: (optimisedPath) {
+                  _robotPathTextController.text = optimisedPath;
+                  _addRobot();
+                },
+                onCancel: () {
+                  skipOptimisation = true;
+                  _addRobot();
+                },
+            )
+        );
+        return;
+      }
+      if (skipOptimisation) {
+        skipOptimisation = false;
       }
 
       List<String> allSplits = _robot1TextController.text.trim().split(" ");
