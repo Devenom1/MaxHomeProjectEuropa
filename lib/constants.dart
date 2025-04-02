@@ -9,4 +9,6 @@ class Constants {
   static List<Orientation> allOrientations = [
     NORTH, EAST, SOUTH, WEST
   ];
+
+  static const String repetitiveMovesRegex = "(R{4}|L{4}|(ML){4}|(LM){4}|(MR){4}|(RM){4}|(LR){1}|(RL){1})";
 }
